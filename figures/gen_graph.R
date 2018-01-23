@@ -6,6 +6,13 @@ wholeframe = read.table(datafile, header=TRUE)
 
 pd = position_dodge(width=.1)
 
+switch_width <- function(name) {
+  if (name == "titi") {
+    return (0.8)
+  } else {
+    return (0.2)
+  }
+}
 
 
 #Graph for distribution
@@ -18,25 +25,33 @@ framsum = ddply(framedistrib, c("Runtime","WSselect", "Progname", "WSpush","WSpu
 framsumbasegcc = ddply(framebasegcc, c("Runtime","WSselect", "Progname", "WSpush","WSpush_init", "Strict_Push", "Size","Blocksize","Threads"), summarize, GFlops = mean(Gflops), Std = sd(Gflops), Nxp=length(Runtime))
 framsumbasegcc_para = ddply(framebasegcc_para, c("Runtime","WSselect", "Progname", "WSpush","WSpush_init", "Strict_Push", "Size","Blocksize","Threads"), summarize, GFlops = mean(Gflops), Std = sd(Gflops), Nxp=length(Runtime))
 framsumnumactl_gcc = ddply(framenumactl_gcc, c("Runtime","WSselect", "Progname", "WSpush","WSpush_init", "Strict_Push", "Size","Blocksize","Threads"), summarize, GFlops = mean(Gflops), Std = sd(Gflops), Nxp=length(Runtime))
-pdf("graph_distrib.pdf", width = 10, height=4)
+framsumnumactl_gcc$WSselect="numactl"
+framsumnumactl_gcc$WSpush_init="native"
+framsumbasegcc$WSselect="none"
+framsumbasegcc$WSpush_init="native"
+framsumbasegcc_para$WSselect="parallel_init"
+framsumbasegcc_para$WSpush_init="native"
+pdf("graph_distrib.pdf", width = 10, height=6)
 
+framsum_bind = rbind(framsum, framsumbasegcc, framsumbasegcc_para, framsumnumactl_gcc)
 
-myplot = ggplot(framsum, aes(x=factor(WSpush_init), y = GFlops, fill=interaction(Strict_Push, WSselect, WSpush)))
-myplot = myplot + geom_bar(stat="identity", position=position_dodge())
+myplot = ggplot(framsum_bind, aes(x=factor(WSpush_init), y = GFlops, fill=interaction(Strict_Push, WSselect, WSpush)))
+myplot = myplot + geom_bar(stat="identity", position="dodge")
 myplot = myplot + geom_errorbar(show.legend=FALSE, position=position_dodge(0.9), aes(color=interaction(Strict_Push, WSselect, WSpush), ymin=GFlops-(2*Std/Nxp), ymax=GFlops+(2*Std/Nxp), width=.1))
-myplot = myplot + facet_wrap(Size~Blocksize, ncol=4)
-myplot = myplot + theme(legend.position="right", legend.title=element_text(size=14), legend.text=element_text(size=13), axis.text=element_text(size=12))
-myplot = myplot + ggtitle("Cholesky's performances using 32K matrices depending on the data distribution\n")
-myplot = myplot + scale_fill_grey(name="", labels=c("sRand\npLoc", "sRandNuma\npLocNum", "sNumaProc\npNumaWLoc", "sProc\npNumaWLoc"))
-myplot = myplot + scale_x_discrete(name="Data distribution")
-myplot = myplot + geom_hline(aes(yintercept=framsumnumactl_gcc$GFlops), linetype="dashed")
-myplot = myplot + geom_text(aes(3.2, framsumnumactl_gcc$GFlops, label="GCC init-seq\n+ Numactl"), vjust=0.5, hjust=1.05, size=4.5, family="Courier")
-myplot = myplot + geom_hline(aes(yintercept=framsumbasegcc_para$GFlops))
-myplot = myplot + geom_text(aes(3.2, framsumbasegcc_para$GFlops, label="GCC init-para"), vjust=-0.6, hjust=1.05, size=4.5, family="Courier")
-myplot = myplot + geom_hline(aes(yintercept=framsumbasegcc$GFlops), linetype="twodash")
-myplot = myplot + geom_text(aes(3.2, framsumbasegcc$GFlops, label="GCC init-seq"), vjust=1.5, hjust=1.05, size=4.5, family="Courier")
-myplot = myplot + scale_color_grey()
-myplot = myplot + guides(fill=guide_legend(nrow=4, byrow=TRUE, keyheight=3), color=FALSE)
+#myplot = myplot + facet_wrap(Size~Blocksize, ncol=4)
+myplot = myplot + theme(legend.position="right", text=element_text(size=16))
+#myplot = myplot + ggtitle("Cholesky's performances using 32K matrices depending on the data distribution\n")
+myplot = myplot + scale_fill_discrete(name="", labels=c("sRand\npLoc", "libGOMP\nSequentiel", "libGOMP\nParallèle", "libGOMP\nnumactl", "sRandNuma\npLocNum", "sNumaProc\npNumaWLoc", "sProc\npNumaWLoc"))
+#myplot = myplot + scale_fill_discrete()
+myplot = myplot + scale_x_discrete(name="Type de distribution", labels=c("Cyclique", "Aléatoire", "Native"))
+#myplot = myplot + geom_hline(aes(yintercept=framsumnumactl_gcc$GFlops), linetype="dashed")
+#myplot = myplot + geom_text(aes(3.2, framsumnumactl_gcc$GFlops, label="GCC init-seq\n+ Numactl"), vjust=0.5, hjust=1.05, size=4.5, family="Courier")
+#myplot = myplot + geom_hline(aes(yintercept=framsumbasegcc_para$GFlops))
+#myplot = myplot + geom_text(aes(3.2, framsumbasegcc_para$GFlops, label="GCC init-para"), vjust=-0.6, hjust=1.05, size=4.5, family="Courier")
+#myplot = myplot + geom_hline(aes(yintercept=framsumbasegcc$GFlops), linetype="twodash")
+#myplot = myplot + geom_text(aes(3.2, framsumbasegcc$GFlops, label="GCC init-seq"), vjust=1.5, hjust=1.05, size=4.5, family="Courier")
+#myplot = myplot + scale_color_grey()
+myplot = myplot + guides(fill=guide_legend(nrow=7, byrow=TRUE, keyheight=3), color=FALSE)
 
 
 print(myplot)
@@ -80,11 +95,11 @@ myplot = myplot + theme(legend.position="right", legend.title=element_text(size=
 myplot = myplot + scale_x_discrete(name="", breaks=NULL)
 myplot = myplot + ylim(0, 2500)
 myplot = myplot + guides(fill=guide_legend(nrow=4, byrow=TRUE, keyheight=2.3), color=FALSE)
-myplot = myplot + scale_fill_grey(name="", labels=c("1: sRand\n    pLoc", "2: sRandNuma\n    pLocNum", "3: sNuma\n    pNumaWLoc", "4: sNumaProc\n    pNumaWLoc", "5: sProc\n    pNumaWLoc", "6: sProcNuma\n    pNumaWLoc", "7: sRandNuma\n    pNumaW"))
+myplot = myplot + scale_fill_discrete(name="", labels=c("1: sRand\n    pLoc", "2: sRandNuma\n    pLocNum", "3: sNuma\n    pNumaWLoc", "4: sNumaProc\n    pNumaWLoc", "5: sProc\n    pNumaWLoc", "6: sProcNuma\n    pNumaWLoc", "7: sRandNuma\n    pNumaW"))
 myplot = myplot + geom_hline(aes(yintercept=framsumbaseline$GFlops), linetype="dashed")
 myplot = myplot + geom_text(aes(1.4, framsumbaseline$GFlops, label="GCC"), vjust=1.5, hjust=-0.5, size=5, family="Courier")
-myplot = myplot + scale_color_grey()
-myplot = myplot + ggtitle("Cholesky's performances using 32K matrices depending on the strategy\n")
+#myplot = myplot + scale_color_grey()
+#myplot = myplot + ggtitle("Cholesky's performances using 32K matrices depending on the strategy\n")
 
 
 
@@ -96,19 +111,19 @@ frame_eval_detail_strat = subset(wholeframe, Runtime == "komp" & ((Blocksize == 
 
  #& ((Size=="16384" & Blocksize == "256") | (Size=="32768" & Blocksize == "512")))
 framsum = ddply(frame_eval_detail_strat, c("Runtime","WSselect", "Progname", "WSpush","WSpush_init", "Strict_Push", "Size","Blocksize","Threads"), summarize, GFlops = mean(Gflops), Std = sd(Gflops), Nxp=length(Runtime))
-pdf("graph_details_strat.pdf", width = 10, height=4)
+pdf("graph_details_strat.pdf", width = 10, height=10)
 
 levels(framsum$Progname) <- c("QR", "Cholesky")
 
 myplot = ggplot(framsum, aes(x=factor(Size), y = GFlops, fill=interaction(Strict_Push, WSselect, WSpush)))
 myplot = myplot + geom_bar(stat="identity", position=position_dodge())
 myplot = myplot + geom_errorbar(position=position_dodge(0.9), aes(color=interaction(Strict_Push, WSselect, WSpush), ymin=GFlops-(2*Std/Nxp), ymax=GFlops+(2*Std/Nxp), width=.1))
-myplot = myplot + facet_grid(~Progname)
-myplot = myplot + theme(legend.position="right", legend.title=element_text(size=14), legend.text=element_text(size=13), axis.text=element_text(size=12))
-myplot = myplot + scale_x_discrete(name="Matrix size (best BS)")
-myplot = myplot + scale_color_grey()
-myplot = myplot + ggtitle("Cholesky and QR performances for multiple sizes\n")
-myplot = myplot + scale_fill_grey(name="", labels=c("sRand\npLoc", "sNumaProc\npNumaWLoc", "sRandNuma\npNumaW"))
+myplot = myplot + facet_wrap(~Progname, ncol=1)
+myplot = myplot + theme(legend.position="right", text=element_text(size=16))
+myplot = myplot + scale_x_discrete(name="Taille de matrice (Meilleure taille de bloc)")
+#myplot = myplot + scale_color_grey()
+#myplot = myplot + ggtitle("Cholesky and QR performances for multiple sizes\n")
+myplot = myplot + scale_fill_discrete(name="", labels=c("sRand\npLoc", "sNumaProc\npNumaWLoc", "sRandNuma\npNumaW"))
 myplot = myplot + guides(fill=guide_legend(nrow=3, byrow=TRUE, keyheight=3), color=FALSE)
 
 
