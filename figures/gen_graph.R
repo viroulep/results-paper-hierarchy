@@ -31,7 +31,7 @@ framsumbasegcc$WSselect="none"
 framsumbasegcc$WSpush_init="native"
 framsumbasegcc_para$WSselect="parallel_init"
 framsumbasegcc_para$WSpush_init="native"
-pdf("graph_distrib.pdf", width = 10, height=6)
+pdf("graph_distrib_data_idchire.pdf", width = 10, height=6)
 
 framsum_bind = rbind(framsum, framsumbasegcc, framsumbasegcc_para, framsumnumactl_gcc)
 
@@ -84,7 +84,7 @@ frame_eval_strat = subset(wholeframe, (Progname == "dpotrf_taskdep" & Size=="327
 frame_baseline = subset(wholeframe, (Progname == "dpotrf_taskdep" & Size=="32768" & Blocksize == "512" & Strict_Push == "loose") & (Runtime == "gomp" & WSpush_init == "parallel_init"))
 framsum = ddply(frame_eval_strat, c("Runtime","WSselect", "Progname", "WSpush","WSpush_init", "Strict_Push", "Size","Blocksize","Threads"), summarize, GFlops = mean(Gflops), Std = sd(Gflops), Nxp=length(Runtime))
 framsumbaseline = ddply(frame_baseline, c("Runtime","WSselect", "Progname", "WSpush","WSpush_init", "Strict_Push", "Size","Blocksize","Threads"), summarize, GFlops = mean(Gflops), Std = sd(Gflops), Nxp=length(Runtime))
-pdf("graph_all_strat.pdf", width = 10, height=4)
+pdf("graph_all_strat_idchire.pdf", width = 10, height=4)
 
 
 myplot = ggplot(framsum, aes(x=factor(Progname), y = GFlops, fill=interaction(Runtime, Strict_Push, WSselect, WSpush)))
@@ -111,7 +111,7 @@ frame_eval_detail_strat = subset(wholeframe, Runtime == "komp" & ((Blocksize == 
 
  #& ((Size=="16384" & Blocksize == "256") | (Size=="32768" & Blocksize == "512")))
 framsum = ddply(frame_eval_detail_strat, c("Runtime","WSselect", "Progname", "WSpush","WSpush_init", "Strict_Push", "Size","Blocksize","Threads"), summarize, GFlops = mean(Gflops), Std = sd(Gflops), Nxp=length(Runtime))
-pdf("graph_details_strat.pdf", width = 10, height=10)
+pdf("graph_details_qr_cholesky_idchire.pdf", width = 10, height=10)
 
 levels(framsum$Progname) <- c("QR", "Cholesky")
 
